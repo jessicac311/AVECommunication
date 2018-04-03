@@ -16,6 +16,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service android:name=".BTService" >
+        </service>
     </application>
 
     <!--ADDED THESE TWO PERMISSIONS 3/9/18 BY ARIZONA-->
