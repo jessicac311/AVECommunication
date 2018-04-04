@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
+import java.util.Arrays;
+
 
 /**
  * Created by Jessica on 3/25/2018.
@@ -41,6 +43,12 @@ public class BTService extends Service {
     private InputStream inStream = null;
     BluetoothSocket mmSocket;
     BluetoothDevice mmDevice;
+    public String turn;
+    public String direction;
+    public String speed;
+    private int lonSample = 0;
+    private int latSample = 0;
+
     // Constant for UUID
     static final UUID myUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     //final String address = "B8:27:EB:7A:B9:13";
@@ -74,6 +82,11 @@ public class BTService extends Service {
 
     @Override
     public boolean onUnbind(Intent intent) {
+        try {
+            mmSocket.close();
+        } catch (IOException closeException) {
+
+        }
         return true;
     }
 
@@ -118,17 +131,20 @@ public class BTService extends Service {
 
                 }
             }
-            send();
+
+            receive();
         }
+
         // THIS IS WHAT SENDS THE VOLTAGE INFO
         // OutputStream: accepts output bytes and sends them to some sink
-        public void send() throws IOException {
-            String msg = "AVE test data!!";
+        public void send(String msg) throws IOException {
+            //String msg = "AVE test data!!";
+            //dataToSend();
+            //String data = Integer.toString(latSample) + " " + Integer.toString(lonSample);
             //byte[] msgBuffer = msg.getBytes();
             OutputStream mmOutputStream = mmSocket.getOutputStream();
             // writes bytes from the specified byte array to this output stream
             mmOutputStream.write(msg.getBytes());
-            receive();
         }
 
         // InputStream: accepts an input stream of bytes
@@ -136,19 +152,26 @@ public class BTService extends Service {
         // are automatically connected to the socket
         public void receive() throws IOException {
             InputStream mmInputStream = mmSocket.getInputStream();
-            byte[] buffer = new byte[256];
-            int bytes;
+            byte[] buffer = new byte[1024];
+            //int bytes = 0;
 
             try {
-                bytes = mmInputStream.read(buffer);
-                String readMessage = new String(buffer, 0, bytes);
-                Log.d(TAG, "Received: " + readMessage);
+                String readMessage = "";
+                // continue until no byte is available because the stream is at the end of the file
+                while (readMessage != "End") {
+                    int bytes = mmInputStream.read(buffer);
+                    readMessage = new String(buffer, 0, bytes);
+                    Log.d(TAG, "Received from CCP (Unparsed): " + readMessage);
+                    parseDriveCommand(readMessage);
+                    String sendMsg = dataToSend();
+                    send(sendMsg);
+                }
                 // Sets TextView object to display the message
 //                TextView test1 = (TextView) findViewById(R.id.Voltage);
 //                test1.setText("Data from CCP\n" + readMessage);
-                mmSocket.close();
+                //mmSocket.close();
             } catch (IOException e) {
-                Log.e(TAG, "Problemsccurred!");
+                Log.e(TAG, "Problems occurred!");
                 return;
             }
         }
@@ -156,36 +179,26 @@ public class BTService extends Service {
 
 
 
-//    @Override
-//    public void onStartCommand(Intent intent ) {
-//
-//       /* BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-//
-//        //final Intent intent = getIntent();
-//
-//        //final String address = intent.getStringExtra(MainActivity.EXTRA_ADDRESS);
-//        final String address = "B8:27:EB:7A:B9:13";
-//
-//        final BluetoothDevice device = BTAdapter.getRemoteDevice(address);
-//        try {
-//            // Starts connecting with the device
-//            new ConnectThread(device).start();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//
-//        // Show a system activity that enables bluetooth
-//        if (!mBluetoothAdapter.isEnabled()) {
-//            Intent enableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-//            startActivityForResult(enableBluetooth, 0);
-//        }*/
-//    }
+    public void parseDriveCommand(String message){
+        // turn, direction, speed, stuff for PTP
+        String string = "Straight,Forward,27,36,-2";
 
+        String[] values = string.split(",");
+        turn = values[0];
+        direction = values[1];
+        speed = values[2];
 
-/*    @Override
-    public IBinder onBind(Intent intent) {
-        // Used only in case of bound services.
-        return null;
-    }*/
+        Log.d(TAG, "Received turn: " + turn);
+        Log.d(TAG, "Received turn: " + direction);
+        Log.d(TAG, "Received turn: " + speed);
 
+    }
+
+    public String dataToSend() {
+        latSample ++;
+        lonSample+= 4;
+        String data = Integer.toString(latSample)  + " " + Integer.toString(lonSample);
+        return data;
+
+    }
 }

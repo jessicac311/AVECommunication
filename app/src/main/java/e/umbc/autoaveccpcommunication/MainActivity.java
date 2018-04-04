@@ -55,14 +55,6 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-/*        AVEbutton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mServiceBound) {
-                    mBTService.send();
-                }
-            }
-        });*/
     }
 
         private ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -78,32 +70,5 @@ public class MainActivity extends AppCompatActivity {
                 mServiceBound = false;
             }
         };
-
-//        // THIS WILL BE WHEN THE AVE BUTTON IS PRESSED
-//        Intent startIntent = new Intent(MainActivity.this, BTService.class);
-//        startService(startIntent);
-
-
-
-/*        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-        //final Intent intent = getIntent();
-
-        //final String address = intent.getStringExtra(MainActivity.EXTRA_ADDRESS);
-        final String address = "B8:27:EB:7A:B9:13";
-
-        final BluetoothDevice device = BTAdapter.getRemoteDevice(address);
-        try {
-            // Starts connecting with the device
-            new ConnectThread(device).start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // Show a system activity that enables bluetooth
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBluetooth, 0);
-        }*/
 
 }
