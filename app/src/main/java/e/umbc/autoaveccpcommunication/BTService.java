@@ -19,6 +19,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
+
+import java.util.Timer;
+import java.util.TimerTask;
+import android.os.Handler;
+import java.util.Date;
 import java.util.Arrays;
 
 
@@ -48,6 +53,13 @@ public class BTService extends Service {
     public String speed;
     private int lonSample = 0;
     private int latSample = 0;
+    public Timer timer;
+    public TimerTask timerTask;
+    final Handler handler = new Handler();
+    private long stopwatch;
+    private int emptyReceiveCount = 0;
+
+
 
     // Constant for UUID
     static final UUID myUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -135,49 +147,96 @@ public class BTService extends Service {
             receive();
         }
 
-        // THIS IS WHAT SENDS THE VOLTAGE INFO
-        // OutputStream: accepts output bytes and sends them to some sink
-        public void send(String msg) throws IOException {
+/*        // OutputStream: accepts output bytes and sends them to some sink
+        public void send() throws IOException {
             //String msg = "AVE test data!!";
-            //dataToSend();
+
+            long startTime = System.currentTimeMillis();
+            long stopwatch = (new Date()).getTime() - startTime;
+            while(stopwatch == 250) {
+                String msg = dataToSend();
+                OutputStream mmOutputStream = mmSocket.getOutputStream();
+                // writes bytes from the specified byte array to this output stream
+                mmOutputStream.write(msg.getBytes());
+                stopwatch = (new Date()).getTime() - startTime;
+
+            }
+
+
             //String data = Integer.toString(latSample) + " " + Integer.toString(lonSample);
             //byte[] msgBuffer = msg.getBytes();
-            OutputStream mmOutputStream = mmSocket.getOutputStream();
+            //OutputStream mmOutputStream = mmSocket.getOutputStream();
             // writes bytes from the specified byte array to this output stream
-            mmOutputStream.write(msg.getBytes());
-        }
+            //mmOutputStream.write(msg.getBytes());
+        }*/
 
         // InputStream: accepts an input stream of bytes
         // getInputStream(): called in order to retreive InputStream objects, which
         // are automatically connected to the socket
         public void receive() throws IOException {
+
             InputStream mmInputStream = mmSocket.getInputStream();
             byte[] buffer = new byte[1024];
             //int bytes = 0;
 
             try {
-                String readMessage = "";
+                long startTime = System.currentTimeMillis();
+                //long stopwatch;
+                emptyReceiveCount = 0;
+                while (emptyReceiveCount < 5) {
+                    // Sample rate = 250 ms = .25 second
+                    stopwatch = (new Date()).getTime() - startTime;
+                    if (stopwatch == 250) {
+                        // SEND DATA
+                        String msg = dataToSend();
+                        OutputStream mmOutputStream = mmSocket.getOutputStream();
+                        // writes bytes from the specified byte array to this output stream
+                        mmOutputStream.write(msg.getBytes());
+
+
+                        // RECEIVE DATA
+                        // Try to receive message
+                        if (mmInputStream.available() != 0) {
+                            int bytes = mmInputStream.read(buffer);
+                            String readMessage = new String(buffer, 0, bytes);
+                            Log.d(TAG, "Receive);d from CCP (Unparsed): " + readMessage);
+                            parseDriveCommand(readMessage);
+                        }
+
+                        // if message wasn't received, increment emptyReceiveCount
+                        else {
+                            emptyReceiveCount++;
+                        }
+
+                        startTime = System.currentTimeMillis();
+                    }
+                }
+
+                // NEED TO LAND, WE HAVE NOT GOTTEN MESSAGES IN 1 SEC
+
+                /*String readMessage = "";
+
                 // continue until no byte is available because the stream is at the end of the file
                 while (readMessage != "End") {
+
+
                     int bytes = mmInputStream.read(buffer);
                     readMessage = new String(buffer, 0, bytes);
-                    Log.d(TAG, "Received from CCP (Unparsed): " + readMessage);
+                    Log.d(TAG, "Receive);d from CCP (Unparsed): " + readMessage);
                     parseDriveCommand(readMessage);
-                    String sendMsg = dataToSend();
-                    send(sendMsg);
+*//*                    String sendMsg = dataToSend();
+                    send(sendMsg);*//*
                 }
                 // Sets TextView object to display the message
 //                TextView test1 = (TextView) findViewById(R.id.Voltage);
 //                test1.setText("Data from CCP\n" + readMessage);
-                //mmSocket.close();
+                //mmSocket.close();*/
             } catch (IOException e) {
                 Log.e(TAG, "Problems occurred!");
                 return;
             }
         }
     }
-
-
 
     public void parseDriveCommand(String message){
         // turn, direction, speed, stuff for PTP
@@ -197,7 +256,12 @@ public class BTService extends Service {
     public String dataToSend() {
         latSample ++;
         lonSample+= 4;
-        String data = Integer.toString(latSample)  + " " + Integer.toString(lonSample);
+        String st = Long.toString(stopwatch);
+        if (emptyReceiveCount == 3) {
+            String data = st  + " " + "Receive Count is 3";
+            return data;
+        }
+        String data = st  + " " + Integer.toString(emptyReceiveCount);
         return data;
 
     }
